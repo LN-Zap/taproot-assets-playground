@@ -1,0 +1,49 @@
+services:
+  litd:
+    image: lightninglabs/lightning-terminal:v0.13.3-alpha
+    restart: unless-stopped
+    depends_on:
+      - bitcoind
+    networks:
+      testing_net:
+        ipv4_address: 172.31.1.2
+    ports:
+      - "8443:8443"
+    volumes:
+      - "litd:/root/.lit"
+      - "./conf/lit/lit.conf:/root/.lit/lit.conf"
+    command: --lnd.externalip=172.31.1.2 --lnd.externalip=litd:9735 --lnd.tlsextradomain=litd --lnd.alias=litd --lnd.color=#89CFF0
+
+# --- Additional services ---
+
+  bitcoind:
+    image: lncm/bitcoind:v27.0
+    restart: unless-stopped
+    networks:
+      testing_net:
+        ipv4_address: 172.31.1.1
+    volumes:
+      - "bitcoind:/data/.bitcoin"
+      - "./conf/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf"
+
+  blockgen:
+    build: ./docker/blockgen
+    command: [ "/bin/sh", "/app/blockgen.sh" ]
+    networks:
+      testing_net:
+        ipv4_address: 172.31.9.1
+    volumes:
+      - "./docker/blockgen/blockgen.sh:/app/blockgen.sh"
+    depends_on:
+      - bitcoind
+
+volumes:
+  bitcoind:
+  litd:
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.31.0.0/16
