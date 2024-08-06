@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 tmpfile=$(mktemp)
-docker exec taproot-assets-playground-bitcoind-1 bitcoin-cli -rpcport=43782 -rpcuser=user -rpcpassword=pass -regtest "${@:1}" > $tmpfile 2>&1
+docker exec taproot-assets-playground-bitcoind-1 bitcoin-cli \
+    -rpcport=43782 \
+    -rpcuser=user \
+    -rpcpassword=pass \
+    -regtest "${@:1}" > $tmpfile 2>&1
 status=$?
 output=$(< $tmpfile)
 rm $tmpfile

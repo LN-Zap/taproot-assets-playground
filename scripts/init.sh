@@ -18,12 +18,20 @@ bitcoind() {
   $DIR/../bin/bitcoin-cli $@
 }
 
-lncli() {
-  $DIR/../bin/lncli $@
+litd1-lncli() {
+  $DIR/../bin/lncli litd1 $@
 }
 
-tapcli() {
-  $DIR/../bin/tapcli $@
+litd1-tapcli() {
+  $DIR/../bin/tapcli litd1 $@
+}
+
+litd2-lncli() {
+  $DIR/../bin/lncli litd2 $@
+}
+
+litd2-tapcli() {
+  $DIR/../bin/tapcli litd2 $@
 }
 
 waitFor() {
@@ -67,21 +75,30 @@ generateBitcoinAddress() {
 }
 
 generateNodeAddresses() {
-  LITD_ADDRESS=$(lncli newaddress p2wkh | jq -r .address)
-  echo LITD_ADDRESS: $LITD_ADDRESS
+  LITD1_ADDRESS=$(litd1-lncli newaddress p2wkh | jq -r .address)
+  echo LITD1_ADDRESS: $LITD1_ADDRESS
+
+  LITD2_ADDRESS=$(litd2-lncli newaddress p2wkh | jq -r .address)
+  echo LITD2_ADDRESS: $LITD2_ADDRESS
 }
 
 getNodeInfo() {
-  LITD_NODE_INFO=$(lncli getinfo)
-  LITD_NODE_URI=$(echo ${LITD_NODE_INFO} | jq -r .uris[0])
-  LITD_PUBKEY=$(echo ${LITD_NODE_INFO} | jq -r .identity_pubkey)
-  echo LITD_PUBKEY: $LITD_PUBKEY
-  echo LITD_NODE_URI: $LITD_NODE_URI
+  LITD1_NODE_INFO=$(litd1-lncli getinfo)
+  LITD1_NODE_URI=$(echo ${LITD1_NODE_INFO} | jq -r .uris[0])
+  LITD1_PUBKEY=$(echo ${LITD1_NODE_INFO} | jq -r .identity_pubkey)
+  echo LITD1_PUBKEY: $LITD1_PUBKEY
+  echo LITD1_NODE_URI: $LITD1_NODE_URI
+
+  LITD2_NODE_INFO=$(litd2-lncli getinfo)
+  LITD2_NODE_URI=$(echo ${LITD2_NODE_INFO} | jq -r .uris[0])
+  LITD2_PUBKEY=$(echo ${LITD2_NODE_INFO} | jq -r .identity_pubkey)
+  echo LITD2_PUBKEY: $LITD2_PUBKEY
+  echo LITD2_NODE_URI: $LITD2_NODE_URI
 }
 
 sendFundingTransaction() {
   echo creating raw tx...
-  local addresses=($LITD_ADDRESS)
+  local addresses=($LITD1_ADDRESS $LITD2_ADDRESS)
   local outputs=$(jq -nc --arg amount 1 '$ARGS.positional | reduce .[] as $address ({}; . + {($address) : ($amount | tonumber)})' --args "${addresses[@]}")
   RAW_TX=$(bitcoind createrawtransaction "[]" $outputs)
   echo RAW_TX: $RAW_TX
@@ -103,6 +120,8 @@ fundNodes() {
   sendFundingTransaction
   sendFundingTransaction
   sendFundingTransaction
+  sendFundingTransaction
+  sendFundingTransaction
 
   # Generate some blocks to confirm the transactions.
   mineBlocks $BITCOIN_ADDRESS 10
@@ -110,20 +129,30 @@ fundNodes() {
 
 mintAssets() {
   echo "Minting assets..."
-  tapcli assets mint --type normal --name strike-usdt --supply 100000000 --decimal_display 2 --meta_bytes '{"issuer":"strike"}' --meta_type json --new_grouped_asset
-  tapcli assets mint finalize
+  litd1-tapcli assets mint --type normal --name strike-usdt --supply 100000000 --decimal_display 2 --meta_bytes '{"issuer":"strike"}' --meta_type json --new_grouped_asset
+  litd1-tapcli assets mint finalize
 
   # Get the tweaked group id so that we can mint assitional assets
-  TWEAKED_GROUP_KEY=$(tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "strike-usdt") | .asset_group.tweaked_group_key')
-  ASSET_ID=$(tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "strike-usdt") | .asset_genesis.asset_id')
+  TWEAKED_GROUP_KEY=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "strike-usdt") | .asset_group.tweaked_group_key')
+  ASSET_ID=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "strike-usdt") | .asset_genesis.asset_id')
   
   echo TWEAKED_GROUP_KEY: $TWEAKED_GROUP_KEY
   echo ASSET_ID: $ASSET_ID
 
   echo
   echo "Minting additional assets..."
-  tapcli assets mint --type normal --name strike-usdt --supply 100000000 --decimal_display 2 --meta_bytes '{"issuer":"strike"}' --meta_type json --grouped_asset --group_key ${TWEAKED_GROUP_KEY}
-  tapcli assets mint finalize
+  litd1-tapcli assets mint --type normal --name strike-usdt --supply 100000000 --decimal_display 2 --meta_bytes '{"issuer":"strike"}' --meta_type json --grouped_asset --group_key ${TWEAKED_GROUP_KEY}
+  litd1-tapcli assets mint finalize
+}
+
+openChannel() {
+  # Open a channel between litd2 and litd1.
+  echo "Opening channel between litd2 and litd1"
+  waitFor litd2-lncli connect $LITD1_NODE_URI
+  waitFor litd2-lncli openchannel $LITD1_PUBKEY 10000000
+
+  # Generate some blocks to confirm the channel.
+  mineBlocks $BITCOIN_ADDRESS 10
 }
 
 waitBitcoind() {
@@ -131,7 +160,8 @@ waitBitcoind() {
 }
 
 waitForNodes() {
-  waitFor lncli getinfo
+  waitFor litd1-lncli getinfo
+  waitFor litd2-lncli getinfo
 }
 
 main() {
@@ -164,6 +194,9 @@ main() {
 
   print_section "MINT ASSERS"
   mintAssets
+
+  print_section "OPEN CHANNELS"
+  openChannel
 }
 
 main

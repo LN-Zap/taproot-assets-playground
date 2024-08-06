@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 tmpfile=$(mktemp)
-docker exec taproot-assets-playground-litd-1 lncli \
+docker exec taproot-assets-playground-${1}-1 lncli \
     --network=regtest \
     --rpcserver=localhost:10009 \
     --tlscertpath=/root/.lnd/tls.cert \
-    "${@:1}" > $tmpfile 2>&1
+    "${@:2}" > $tmpfile 2>&1
 status=$?
 output=$(< $tmpfile)
 rm $tmpfile
