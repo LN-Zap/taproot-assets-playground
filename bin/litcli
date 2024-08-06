@@ -5,7 +5,7 @@ docker exec taproot-assets-playground-${1}-1 litcli \
     --network=regtest \
     --rpcserver=localhost:8443 \
     --tlscertpath=/root/.lit/tls.cert  \
-    --macaroonpath=/root/.lit/regtest/lit.macaroon \
+    --macaroonpath=/root/.lnd/data/chain/bitcoin/regtest/admin.macaroon  \
     "${@:2}" > $tmpfile 2>&1
 status=$?
 output=$(< $tmpfile)
