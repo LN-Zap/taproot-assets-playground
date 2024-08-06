@@ -1,6 +1,11 @@
 services:
   litd1:
-    image: lightninglabs/lightning-terminal:v0.13.3-alpha
+    # image: lightninglabs/lightning-terminal:v0.13.3-alpha
+    build:
+      context: docker/lightning-terminal
+      dockerfile: Dockerfile
+      args:
+        checkout: v0.13.991-experimental
     restart: unless-stopped
     depends_on:
       - bitcoind
@@ -15,7 +20,12 @@ services:
     command: --lnd.externalip=172.31.1.1 --lnd.externalip=litd1:9735 --lnd.tlsextradomain=litd1 --lnd.alias=litd1 --lnd.color=#89CFF0
 
   litd2:
-    image: lightninglabs/lightning-terminal:v0.13.3-alpha
+    # image: lightninglabs/lightning-terminal:v0.13.3-alpha
+    build:
+      context: docker/lightning-terminal
+      dockerfile: Dockerfile
+      args:
+        checkout: v0.13.991-experimental
     restart: unless-stopped
     depends_on:
       - bitcoind

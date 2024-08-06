@@ -8,3 +8,6 @@ Thumbs.db
 *.ipr
 *.iws
 .vscode/
+
+# Sparse checkout
+docker/lightning-terminal

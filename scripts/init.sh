@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -oe pipefail
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 
@@ -11,7 +13,7 @@ setup () {
 
   echo
   echo "Starting the stack..."
-  docker compose up -d
+  docker compose up --build -d
 }
 
 bitcoind() {
