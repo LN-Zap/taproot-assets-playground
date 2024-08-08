@@ -130,20 +130,21 @@ fundNodes() {
 }
 
 mintAssets() {
-  echo "Minting assets..."
-  litd1-tapcli assets mint --type normal --name strike-usdt --supply 100000000 --decimal_display 2 --meta_bytes '{"issuer":"strike"}' --meta_type json --new_grouped_asset
+  echo 'Minting $1M (10B units with 4 decimal places)'
+
+  litd1-tapcli assets mint --type normal --name L-USDT --supply 10_000_000_000 --decimal_display 4 --meta_bytes '{"issuer":"strike"}' --meta_type json --new_grouped_asset
   litd1-tapcli assets mint finalize
 
   # Get the tweaked group id so that we can mint assitional assets
-  TWEAKED_GROUP_KEY=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "strike-usdt") | .asset_group.tweaked_group_key')
-  ASSET_ID=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "strike-usdt") | .asset_genesis.asset_id')
+  TWEAKED_GROUP_KEY=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "L-USDT") | .asset_group.tweaked_group_key')
+  ASSET_ID=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "L-USDT") | .asset_genesis.asset_id')
   
   echo TWEAKED_GROUP_KEY: $TWEAKED_GROUP_KEY
   echo ASSET_ID: $ASSET_ID
 
   echo
-  echo "Minting additional assets..."
-  litd1-tapcli assets mint --type normal --name strike-usdt --supply 100000000 --decimal_display 2 --meta_bytes '{"issuer":"strike"}' --meta_type json --grouped_asset --group_key ${TWEAKED_GROUP_KEY}
+  echo 'Minting additional $0.5M (5B units with 4 decimal places)'
+  litd1-tapcli assets mint --type normal --name L-USDT --supply 5_000_000_000 --decimal_display 4 --meta_bytes '{"issuer":"strike"}' --meta_type json --grouped_asset --group_key ${TWEAKED_GROUP_KEY}
   litd1-tapcli assets mint finalize
 }
 
