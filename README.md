@@ -20,11 +20,11 @@ Run the following command to initialise the nodes:
 ./scripts/init.sh
 ```
 
-This script sets up a dockerized network of lightning nodes, funds the nodes, and creates channels between them, mints taproot assets.
+This script sets up a dockerized network of lightning nodes, funds the nodes, creates channels between them, mints taproot assets caled L-USDT, and creates a taproot asset universe.
 
 **OR start an already initialised network:**
 
-Run the following command to startup the nodes:
+Run the following command to startup the stack
 
 ```sh
 docker compose up
@@ -65,7 +65,6 @@ graph LR
     class litdgroup,taprootgroup groups;
     class litd1,litd2,taproot,strikeusdt nodes;
 ```
-
 
 ## Using CLI Commands
 
