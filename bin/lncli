@@ -3,8 +3,6 @@
 tmpfile=$(mktemp)
 docker exec taproot-assets-playground-${1}-1 lncli \
     --network=regtest \
-    --rpcserver=localhost:10009 \
-    --tlscertpath=/root/.lnd/tls.cert \
     "${@:2}" > $tmpfile 2>&1
 status=$?
 output=$(< $tmpfile)
