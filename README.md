@@ -39,7 +39,7 @@ The script currently sets up two nodes:
 
 ### Channels
 
-The script sets up the following channels, which allows for testing of Bolt 12 interoperability between different Lightning Network node implementations and various channel configurations:
+The script sets up the following environment:
 
 ```mermaid
 graph LR
