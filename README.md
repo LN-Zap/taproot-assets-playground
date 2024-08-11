@@ -53,17 +53,17 @@ graph LR
 
     subgraph taprootgroup ["taproot assets federation"]
         taproot(Taproot Assets Universe)
-        strikeusdt(L-USDT asset)
+        lusdt(L-USDT asset)
     end
 
     litd1 -- 10M channel to --> litd2
     litd1 --serves--> taproot
     litd2 -- connects to --> taproot
-    litd1 -- mints --> strikeusdt
-    taproot -- contains --> strikeusdt
+    litd1 -- mints --> lusdt
+    taproot -- contains --> lusdt
 
     class litdgroup,taprootgroup groups;
-    class litd1,litd2,taproot,strikeusdt nodes;
+    class litd1,litd2,taproot,lusdt nodes;
 ```
 
 ## Using CLI Commands
@@ -95,6 +95,14 @@ You can replace `getinfo` with any other command supported by the node. For a li
 ```
 
 This command displays a list of all tapcli commands that you can issue against the `litd2` node.
+
+## Interactive Demo
+
+Run the following command to start an interactive demo. This will guide you through the process of creating a taproot asset, minting L-USDT, and transferring it between nodes.
+
+```sh
+./scripts/demo.sh
+```
 
 ## Clean up
 
