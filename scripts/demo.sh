@@ -142,7 +142,7 @@ mintAsset() {
   echo -e "This command will mint a new L-USDT taproot asset with a supply of 10,000,000,000 units, a decimal display of 4, and metadata indicating the issuer is 'strike'.\n"
 
   # Define the command to mint a new L-USDT taproot asset
-  local command='litd1-tapcli assets mint --type normal --name L-USDT --supply 10_000_000_000 --decimal_display 4 --meta_type json --new_grouped_asset'
+  local command='litd1-tapcli assets mint --type normal --name L-USDT --supply 1000000000 --decimal_display 4 --meta_type json --new_grouped_asset'
 
   print_command "$command"
 
@@ -205,7 +205,7 @@ openChannelAsset() {
   echo -e "This command will open an L-USDT Taproot Assets channel from litd1 to litd2 with a capacity of $1,000.\n"
 
   # Define the command to open an L-USDT Taproot Assets channel
-  local command="litd1-litcli ln fundchannel --node_key \${LITD2_PUBKEY} --asset_amount 100_0000 --asset_id \${ASSET_ID} --sat_per_vbyte 16"
+  local command="litd1-litcli ln fundchannel --node_key \${LITD2_PUBKEY} --asset_amount 1000000 --asset_id \${ASSET_ID} --sat_per_vbyte 16"
 
   print_command "$command"
 
@@ -244,7 +244,7 @@ payInvoice() {
   colored_bold 32 "EXPLANATION:"
   echo -e "This command will pay the invoice generated on litd2 for a taproot asset transfer of 21 units.\n"
 
-  local command="litd1-litcli ln payinvoice --pay_req \${INVOICE} --asset_id  \${ASSET_ID}"
+  local command="litd1-litcli ln payinvoice --pay_req \${INVOICE} --asset_id \${ASSET_ID} --force"
 
   print_command "$command"
 
