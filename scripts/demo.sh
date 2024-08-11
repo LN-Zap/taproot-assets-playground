@@ -79,10 +79,24 @@ colored_bold() {
   echo -e "\033[1;${color_code}m$@\033[0m"
 }
 
+# Helper function to print variable names in bold
+print_bold_var() {
+  local var_name=$1
+  local var_value=$2
+  echo -e "\033[1m${var_name}:\033[0m ${var_value}"
+}
+
 # Helper function to format command with a bold white prompt
 format_command() {
   local command=$1
   echo -e "$(colored_bold 37 "$command")\n"
+}
+
+# Helper function to print the command
+print_command() {
+  local command=$1
+  colored_bold 33 "COMMAND:"
+  format_command "$command"
 }
 
 # Helper function to print a section header
@@ -108,14 +122,16 @@ getNodeInfo() {
   LITD1_NODE_INFO=$(litd1-lncli getinfo)
   LITD1_NODE_URI=$(echo ${LITD1_NODE_INFO} | jq -r .uris[0])
   LITD1_PUBKEY=$(echo ${LITD1_NODE_INFO} | jq -r .identity_pubkey)
-  echo LITD1_PUBKEY: $LITD1_PUBKEY
-  echo LITD1_NODE_URI: $LITD1_NODE_URI
+  print_bold_var "LITD1_PUBKEY" $LITD1_PUBKEY
+  print_bold_var "LITD1_NODE_URI" $LITD1_NODE_URI
+  echo
 
   LITD2_NODE_INFO=$(litd2-lncli getinfo)
   LITD2_NODE_URI=$(echo ${LITD2_NODE_INFO} | jq -r .uris[0])
   LITD2_PUBKEY=$(echo ${LITD2_NODE_INFO} | jq -r .identity_pubkey)
-  echo LITD2_PUBKEY: $LITD2_PUBKEY
-  echo LITD2_NODE_URI: $LITD2_NODE_URI
+  print_bold_var "LITD2_PUBKEY" $LITD2_PUBKEY
+  print_bold_var "LITD2_NODE_URI" $LITD2_NODE_URI
+  echo
 }
 
 mintAsset() {
@@ -128,10 +144,9 @@ mintAsset() {
   # Define the command to mint a new L-USDT taproot asset
   local command='litd1-tapcli assets mint --type normal --name L-USDT --supply 10_000_000_000 --decimal_display 4 --meta_type json --new_grouped_asset'
 
-  colored_bold 33 "COMMAND:"
-  format_command "$command"
+  print_command "$command"
 
-  # Prompt the user to continue
+  # Prompt the user to continue and execute the command
   prompt_user
   eval $command
 }
@@ -146,10 +161,9 @@ mintAssetFinalise() {
   # Define the command to finalise the mint transaction
   local command='litd1-tapcli assets mint finalize'
 
-  colored_bold 33 "COMMAND:"
-  format_command "$command"
+  print_command "$command"
 
-  # Prompt the user to continue
+  # Prompt the user to continue and execute the command
   prompt_user
   eval $command
 }
@@ -158,13 +172,12 @@ getAssetInfo() {
   echo -e "Getting asset info...\n"
 
   # Get the tweaked group id so that we can mint additional assets
-  TWEAKED_GROUP_KEY=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "L-USDT") | .asset_group.tweaked_group_key')
-  ASSET_ID=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "L-USDT") | .asset_genesis.asset_id')
+  TWEAKED_GROUP_KEY=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r 'first(.assets[] | select(.asset_genesis.name == "L-USDT")) | .asset_group.tweaked_group_key')
+  ASSET_ID=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r 'first(.assets[] | select(.asset_genesis.name == "L-USDT")) | .asset_genesis.asset_id')
 
-  echo "TWEAKED_GROUP_KEY: $TWEAKED_GROUP_KEY"
-  echo "ASSET_ID: $ASSET_ID"
-
-  echo -e "\n---\n"
+  print_bold_var "TWEAKED_GROUP_KEY" $TWEAKED_GROUP_KEY
+  print_bold_var "ASSET_ID" $ASSET_ID
+  echo
 }
 
 openChannelBTC() {
@@ -177,10 +190,9 @@ openChannelBTC() {
   # Define the command to open a normal BTC channel
   local command="litd2-lncli connect \$LITD1_NODE_URI ; litd2-lncli openchannel \$LITD1_PUBKEY 10000000"
 
-  colored_bold 33 "COMMAND:"
-  format_command "$command"
+  print_command "$command"
 
-  # Prompt the user to continue
+  # Prompt the user to continue and execute the command
   prompt_user
   eval $command
 }
@@ -195,12 +207,49 @@ openChannelAsset() {
   # Define the command to open an L-USDT Taproot Assets channel
   local command="litd1-litcli ln fundchannel --node_key \${LITD2_PUBKEY} --asset_amount 100_0000 --asset_id \${ASSET_ID} --sat_per_vbyte 16"
 
-  colored_bold 33 "COMMAND:"
-  format_command "$command"
+  print_command "$command"
 
-  # Prompt the user to continue
+  # Prompt the user to continue and execute the command
   prompt_user
-  # printf "%b\n" "$command"
+  eval $command
+}
+
+generateInvoice() {
+  print_section "GENERATE INVOICE"
+  echo -e "Generate an invoice on litd2 for a taproot asset transfer.\n"
+
+  colored_bold 32 "EXPLANATION:"
+  echo -e "This command will generate an invoice for a taproot asset transfer of 21 units with a memo 'my first taproot asset transfer'.\n"
+
+  # Command to add an invoice
+  local command="litd2-litcli ln addinvoice --memo \"my first taproot asset transfer\" --asset_id \${ASSET_ID} --asset_amount 21"
+
+  print_command "$command"
+
+  # Prompt the user to continue and execute the command
+  prompt_user
+  output=$(eval $command)
+
+  # Extract the payment_request from the output
+  INVOICE=$(echo "$output" | sed -n '/{/,/}/p' | jq -r '.payment_request')
+
+  # Print the INVOICE variable in bold
+  print_bold_var "INVOICE" "$INVOICE"
+}
+
+payInvoice() {
+  print_section "PAY INVOICE"
+  echo -e "Pay the invoice on litd1 for a taproot asset transfer.\n"
+
+  colored_bold 32 "EXPLANATION:"
+  echo -e "This command will pay the invoice generated on litd2 for a taproot asset transfer of 21 units.\n"
+
+  local command="litd1-litcli ln payinvoice --pay_req \${INVOICE} --asset_id  \${ASSET_ID}"
+
+  print_command "$command"
+
+  # Prompt the user to continue and execute the command
+  prompt_user
   eval $command
 }
 
@@ -217,8 +266,7 @@ mineBlocks() {
   # Construct the command string with escaped variables
   local command="new_address=\$(bitcoind getnewaddress) && bitcoind generatetoaddress ${BLOCKS} \${new_address}"
 
-  colored_bold 33 "COMMAND:"
-  format_command "$command"
+  print_command "$command"
 
   # Prompt the user to continue
   prompt_user
@@ -244,6 +292,9 @@ main() {
 
   openChannelAsset
   mineBlocks
+
+  generateInvoice
+  payInvoice
 }
 
 main
