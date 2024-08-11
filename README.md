@@ -98,11 +98,37 @@ This command displays a list of all tapcli commands that you can issue against t
 
 ## Interactive Demo
 
-Run the following command to start an interactive demo. This will guide you through the process of creating a taproot asset, minting L-USDT, and transferring it between nodes.
+You can run an interactive demo to see Taproot Assets in action. The demo script will guide you through the process of creating a taproot asset universe, minting an asset, and transferring it between nodes.
+
+<img src="https://github.com/user-attachments/assets/e437c6a8-9851-4489-9d7f-8c1f447c0007">
+
+
+Install tmux if you haven't already:
+
+```sh
+brew install tmux
+```
+
+To run the demo script, you can use the following command:
+
+```sh
+./scripts/tmux.sh
+```
+
+Alternatively, you can run the demo script without tmux:
 
 ```sh
 ./scripts/demo.sh
 ```
+
+### non-interactive demo
+
+You can also run the demo script in non-interactive mode. This will run the demo script without any user input. This is useful for running the demo in a CI/CD pipeline or for automating the demo at breakneck speed!
+
+```sh
+./scripts/demo.sh --non-interactive
+```
+
 
 ## Clean up
 

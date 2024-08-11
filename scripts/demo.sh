@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -oe pipefail
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 show_help() {
@@ -52,31 +50,21 @@ bitcoind() {
 litd1-lncli() {
   $DIR/../bin/lncli litd1 $@
 }
-
 litd1-tapcli() {
   $DIR/../bin/tapcli litd1 $@
+}
+litd1-litcli() {
+  $DIR/../bin/litcli litd1 $@
 }
 
 litd2-lncli() {
   $DIR/../bin/lncli litd2 $@
 }
-
 litd2-tapcli() {
   $DIR/../bin/tapcli litd2 $@
 }
-
-waitFor() {
-  counter=0
-  until $@ || [ $counter -eq 60 ]; do
-    >&2 echo "$@ unavailable - waiting..."
-    sleep 1
-    ((counter++))
-  done
-
-  if [ $counter -eq 60 ]; then
-    >&2 echo "Waited for 60 seconds, but $@ is still unavailable. Exiting."
-    exit 1
-  fi
+litd2-litcli() {
+  $DIR/../bin/litcli litd2 $@
 }
 
 # Helper function to output text in bold
@@ -94,7 +82,7 @@ colored_bold() {
 # Helper function to format command with a bold white prompt
 format_command() {
   local command=$1
-  echo -e "\033[1;37m$ \033[0m$command\n"
+  echo -e "$(colored_bold 37 "$command")\n"
 }
 
 # Helper function to print a section header
@@ -107,11 +95,15 @@ print_section() {
 intro() {
   colored_bold 34 "Welcome to the Taproot Assets Playground demo!"
   bold "---------------------------------------------"
-  echo -e "In this demo, we will mint a new L-USDT taproot asset with a supply of 10,000,000,000 units, a decimal display of 4, and metadata indicating the issuer is 'strike'.\n"
+  echo -e "In this demo, we will...\n"
+  echo -e "1. Mint the new L-USDT taproot asset."
+  echo -e "2. Verify the minted asset."
+  echo -e "3. Demonstrate asset transfer."
+  echo
 }
 
 getNodeInfo() {
-  echo "Getting node info..."
+  echo -e "Getting node info...\n"
 
   LITD1_NODE_INFO=$(litd1-lncli getinfo)
   LITD1_NODE_URI=$(echo ${LITD1_NODE_INFO} | jq -r .uris[0])
@@ -124,8 +116,6 @@ getNodeInfo() {
   LITD2_PUBKEY=$(echo ${LITD2_NODE_INFO} | jq -r .identity_pubkey)
   echo LITD2_PUBKEY: $LITD2_PUBKEY
   echo LITD2_NODE_URI: $LITD2_NODE_URI
-
-  echo -e "\n---\n"
 }
 
 mintAsset() {
@@ -153,7 +143,7 @@ mintAssetFinalise() {
   colored_bold 32 "EXPLANATION:"
   echo -e "This command will execute the batch and publish your mint transaction to the blockchain.\n"
 
-  # Define the command to mint a new L-USDT taproot asset
+  # Define the command to finalise the mint transaction
   local command='litd1-tapcli assets mint finalize'
 
   colored_bold 33 "COMMAND:"
@@ -162,6 +152,10 @@ mintAssetFinalise() {
   # Prompt the user to continue
   prompt_user
   eval $command
+}
+
+getAssetInfo() {
+  echo -e "Getting asset info...\n"
 
   # Get the tweaked group id so that we can mint additional assets
   TWEAKED_GROUP_KEY=$(litd1-tapcli assets list --show_unconfirmed_mints | jq -r '.assets[] | select(.asset_genesis.name == "L-USDT") | .asset_group.tweaked_group_key')
@@ -169,36 +163,59 @@ mintAssetFinalise() {
 
   echo "TWEAKED_GROUP_KEY: $TWEAKED_GROUP_KEY"
   echo "ASSET_ID: $ASSET_ID"
+
+  echo -e "\n---\n"
 }
 
-
-openChannel() {
-  print_section "OPEN CHANNEL"
+openChannelBTC() {
+  print_section "OPEN CHANNEL (BTC)"
   echo -e "Open a channel between litd2 and litd1.\n"
 
   colored_bold 32 "EXPLANATION:"
   echo -e "This command will open a normal BTC channel from litd2 to litd1 with a capacity of 10,000,000 sats.\n"
 
-  # Construct the command string with escaped variables
-  local command="waitFor litd2-lncli connect \$LITD1_NODE_URI && waitFor litd2-lncli openchannel \$LITD1_PUBKEY 10000000"
+  # Define the command to open a normal BTC channel
+  local command="litd2-lncli connect \$LITD1_NODE_URI ; litd2-lncli openchannel \$LITD1_PUBKEY 10000000"
 
   colored_bold 33 "COMMAND:"
   format_command "$command"
 
   # Prompt the user to continue
   prompt_user
+  eval $command
+}
+
+openChannelAsset() {
+  print_section "OPEN CHANNEL (L_USDT)"
+  echo -e "Open a channel between litd1 and litd2.\n"
+
+  colored_bold 32 "EXPLANATION:"
+  echo -e "This command will open an L-USDT Taproot Assets channel from litd1 to litd2 with a capacity of $1,000.\n"
+
+  # Define the command to open an L-USDT Taproot Assets channel
+  local command="litd1-litcli ln fundchannel --node_key \${LITD2_PUBKEY} --asset_amount 100_0000 --asset_id \${ASSET_ID} --sat_per_vbyte 16"
+
+  colored_bold 33 "COMMAND:"
+  format_command "$command"
+
+  # Prompt the user to continue
+  prompt_user
+  # printf "%b\n" "$command"
   eval $command
 }
 
 mineBlocks() {
+  BLOCKS=6
+  PROPAGATION_TIME=6
+
   print_section "MINE BLOCKS"
-  echo -e "Mine 3 blocks.\n"
+  echo -e "Mine 6 blocks.\n"
 
   colored_bold 32 "EXPLANATION:"
-  echo -e "This command will mine 3 blocks to fully confirm any pending transactions.\n"
+  echo -e "This command will mine 6 blocks to fully confirm any pending transactions.\n"
 
   # Construct the command string with escaped variables
-  local command="new_address=\$(bitcoind getnewaddress) && bitcoind generatetoaddress 3 \${new_address}"
+  local command="new_address=\$(bitcoind getnewaddress) && bitcoind generatetoaddress ${BLOCKS} \${new_address}"
 
   colored_bold 33 "COMMAND:"
   format_command "$command"
@@ -206,15 +223,26 @@ mineBlocks() {
   # Prompt the user to continue
   prompt_user
   eval $command
+
+  echo -e "Waiting ${PROPAGATION_TIME} seconds for blocks to propagate...\n"
+  sleep ${PROPAGATION_TIME}
 }
 
 main() {
   intro
+
   getNodeInfo
+
   mintAsset
   mintAssetFinalise
+  getAssetInfo
+
   mineBlocks
-  openChannel
+
+  openChannelBTC
+  mineBlocks
+
+  openChannelAsset
   mineBlocks
 }
 

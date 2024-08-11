@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -oe pipefail
-
 # Branch name to checkout
 BRANCH_NAME="master"
 
